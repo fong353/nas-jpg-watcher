@@ -4,12 +4,12 @@
 
 ## 这个项目干什么
 
-Win 电脑上的定时任务，每 3 分钟扫描 NAS 上指定目录，**只修一种故障**：JPG 的 `JFIF:ResolutionUnit=None`（0）—— 该故障会让 ErgoSoft 等严守 JFIF 标准的下游软件把 DPI 回落到 72，导致打印尺寸错算为实际的 ~4.17 倍。
+Win 电脑上的定时任务，每 30 分钟扫描 NAS 上指定目录，**只修一种故障**：JPG 的 `JFIF:ResolutionUnit=None`（0）—— 该故障会让 ErgoSoft 等严守 JFIF 标准的下游软件把 DPI 回落到 72，导致打印尺寸错算为实际的 ~4.17 倍。
 
 ## 架构
 
 ```
-Win 任务计划程序（每 3 min）
+Win 任务计划程序（每 30 min）
    └─ scan.cmd （瘦封装，仅转发）
          └─ powershell.exe -File scan.ps1
                  ├─ 列出 $Roots 下的一级子目录
@@ -30,7 +30,7 @@ Win 任务计划程序（每 3 min）
 | `scan-silent.vbs` | ❌ | 计划任务真正的入口：VBScript `Shell.Run(..., 0, False)` 隐藏启动 `scan.cmd`，彻底无窗口闪现 |
 | `scan.ps1` | ✅ | 配置（`$Roots` / `$Days`）+ 所有逻辑 |
 | `exiftool/exiftool.exe` | ❌ | ExifTool 13.57 Win 64 绿色版，整包自带 |
-| `install-task.cmd` | 偶尔 | 注册 `schtasks /sc minute /mo 3`。改周期改这里的 `/mo` |
+| `install-task.cmd` | 偶尔 | 注册 `schtasks /sc minute /mo 30`。改周期改这里的 `/mo`（支持 `/sc minute/hourly/daily` 等） |
 | `uninstall-task.cmd` | ❌ | 一行 `schtasks /delete`  |
 | `scan.log` | 运行时生成 | UTF-8 追加写，每次 start/target/done 三类行 |
 | `部署说明.md` | ✅ | 给最终用户看的部署 + 排查文档 |
@@ -144,7 +144,7 @@ exiftool -G1 -a -s -ResolutionUnit -XResolution -YResolution "问题图.jpg"
 ## 常见修改场景速查
 
 - **加一个扫描根目录** → `scan.ps1` 的 `$Roots` 数组加一行
-- **改扫描周期** → `install-task.cmd` 的 `/mo 3` 改，卸载旧任务后重装
+- **改扫描周期** → `install-task.cmd` 的 `/mo 30` 改数字（或换 `/sc` 单位），卸载旧任务后重装
 - **改扫描天数** → `scan.ps1` 的 `$Days`
 - **换修复逻辑（比如加 XRes 同步）** → `scan.ps1` 里 `$etArgs` 那段，按 exiftool 语法加参数
 - **加 mtime 预过滤优化** → 日增量爆到 5000+ 张才考虑，用 `Get-ChildItem -Recurse` + `Where LastWriteTime`
