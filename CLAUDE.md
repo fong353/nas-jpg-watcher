@@ -26,7 +26,8 @@ Win 任务计划程序（每 3 min）
 
 | 文件 | 改不改 | 职责 |
 |---|---|---|
-| `scan.cmd` | ❌ | 任务计划程序的入口，只做 `powershell -File scan.ps1`。内容极简，任务安装路径写死是它 |
+| `scan.cmd` | ❌ | 手动调试入口：`chcp 65001` + 调 `powershell -File scan.ps1`。可见窗口 |
+| `scan-silent.vbs` | ❌ | 计划任务真正的入口：VBScript `Shell.Run(..., 0, False)` 隐藏启动 `scan.cmd`，彻底无窗口闪现 |
 | `scan.ps1` | ✅ | 配置（`$Roots` / `$Days`）+ 所有逻辑 |
 | `exiftool/exiftool.exe` | ❌ | ExifTool 13.57 Win 64 绿色版，整包自带 |
 | `install-task.cmd` | 偶尔 | 注册 `schtasks /sc minute /mo 3`。改周期改这里的 `/mo` |
@@ -39,6 +40,13 @@ Win 任务计划程序（每 3 min）
 ### 为什么 CMD 薄封装 + PowerShell 主逻辑
 - CMD 里算日期和枚举目录太痛苦；PowerShell 的 `Get-ChildItem -Directory | Where CreationTime` 一行完事
 - 但 `schtasks` 调 `.ps1` 会遇到执行策略拦截；调 `.cmd` 最简。所以保留 `scan.cmd` 作为不变的入口
+
+### 为什么有个 `scan-silent.vbs`
+- 计划任务直接调 `scan.cmd` 会闪黑窗（schtasks 在"只在用户登录时运行"模式下每次触发都可见）
+- 走 "不管用户是否登录都运行" 模式能彻底静默，但要填账密 → 用户拒绝
+- VBScript 的 `Shell.Run(..., 0, False)` 是经典"完全无窗口"启动方案，0 = SW_HIDE
+- 流程：计划任务 → wscript.exe scan-silent.vbs → （隐藏）scan.cmd → chcp + powershell scan.ps1
+- 手动调试时仍可直接双击 `scan.cmd`，会看到窗口输出
 
 ### 为什么按 LastWriteTime + 两层遍历
 - 早期版本 1：按 `yyyyMMdd` 目录名匹配 → 假设命名约定

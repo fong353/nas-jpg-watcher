@@ -1,21 +1,22 @@
 @echo off
 setlocal
 
-REM Register a scheduled task to run scan.cmd every 3 minutes.
+REM Register a scheduled task to run scan.cmd every 3 minutes, silently.
+REM The task points to scan-silent.vbs so no cmd window flashes on each run.
 REM Run this file as Administrator (right-click -> Run as administrator).
 
 set "TASK_NAME=NAS JPG Watcher"
 set "HERE=%~dp0"
-set "SCAN=%HERE%scan.cmd"
+set "LAUNCHER=%HERE%scan-silent.vbs"
 
 echo Registering task: %TASK_NAME%
-echo Script path:      %SCAN%
-echo Interval:         every 3 minutes
+echo Launcher:         %LAUNCHER%
+echo Interval:         every 3 minutes (silent, no window)
 echo.
 
 schtasks /create ^
   /tn "%TASK_NAME%" ^
-  /tr "\"%SCAN%\"" ^
+  /tr "wscript.exe \"%LAUNCHER%\"" ^
   /sc minute /mo 3 ^
   /rl highest ^
   /f
