@@ -78,9 +78,25 @@ $lines = [System.Collections.Generic.List[string]]::new()
 $lines.Add('-charset')
 $lines.Add('FileName=UTF8')
 $lines.Add('-P')
+# 条件 1：只看 JFIF unit=None 的文件
 $lines.Add('-if')
 $lines.Add('$JFIF:ResolutionUnit eq ''None''')
+# 条件 2：至少一个来源（Photoshop / EXIF / JFIF）有可信 DPI 值（>1）
+# 用 ne "" 而不是 defined()，argfile 模式下 defined() 不可靠（undef 会被替换为空串再比较数值，抛错）
+$lines.Add('-if')
+$lines.Add('($Photoshop:XResolution ne "" and $Photoshop:XResolution > 1) or ($EXIF:XResolution ne "" and $EXIF:XResolution > 1) or ($JFIF:XResolution ne "" and $JFIF:XResolution > 1)')
+# 翻 unit；XRes/YRes 按 PS 读取优先级级联（Photoshop > EXIF > JFIF 原值）
+# 后面的 -tag<src 会覆盖前面的，所以按优先级从低到高写
+# JFIF 原值作为基线（不写 self-copy，因为 -tag<tag 自身会让 exiftool 报错）
 $lines.Add('-JFIF:ResolutionUnit=inches')
+$lines.Add('-JFIF:XResolution<EXIF:XResolution')
+$lines.Add('-JFIF:XResolution<Photoshop:XResolution')
+$lines.Add('-JFIF:YResolution<EXIF:YResolution')
+$lines.Add('-JFIF:YResolution<Photoshop:YResolution')
+# 只有命中两个 -if、实际被改的文件才会触发 -FileName 重命名
+# exiftool 写法：%f=主文件名，%e=扩展名 → foo.jpg → foo_fixed.jpg
+# 跳过的文件原名不变。下一轮扫再命中（不会，JFIF 已是 inches）也是 foo_fixed_fixed.jpg，条件 1 会挡
+$lines.Add('-FileName<%f_fixed.%e')
 $lines.Add('-overwrite_original')
 $lines.Add('-ignoreMinorErrors')
 $lines.Add('-r')
