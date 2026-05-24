@@ -1,7 +1,11 @@
 # 运行时日志，不同机器各自生成
 scan.log
 
+# audit.ps1 的一次性输出
+audit.json
+
 # 系统杂项
 .DS_Store
 Thumbs.db
 desktop.ini
+__MACOSX/

@@ -25,6 +25,7 @@ if %errorlevel% equ 0 (
   echo.
   echo [OK] Task installed. Open Task Scheduler to see "%TASK_NAME%".
   echo Uninstall: double-click uninstall-task.cmd
+  echo Manual test run: double-click run-once.cmd
 ) else (
   echo.
   echo [FAIL] Install failed. Please run this file as Administrator.
