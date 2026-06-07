@@ -6,9 +6,9 @@
 
 **Languages:** [English](#english) · [中文](#中文)
 
-> ℹ️ This repository started as a small Windows scheduled-task tool ("nas-jpg-watcher") that auto-aligned JFIF DPI on a NAS. **The code is now retired** — what remains valuable, and what this repo now preserves, are the **conclusions** about how image software interprets JPEG DPI metadata. The original implementation and its full engineering notes live in [`CLAUDE.md`](./CLAUDE.md) and the git history.
+> Findings come from first-hand testing (Photoshop 26.2, ErgoSoft HotFolder) cross-checked against image-format specs and open-source bug reports. Aimed at print / prepress workflows, where embedded DPI actually maps to physical size.
 >
-> 本仓库最初是一个 Windows 定时任务小工具（"nas-jpg-watcher"），自动对齐 NAS 上文件的 JFIF DPI。**代码现已退役**——真正有价值、本仓库现在保留的，是关于图像软件如何解读 JPEG DPI 元数据的**结论**。原始实现与完整工程笔记见 [`CLAUDE.md`](./CLAUDE.md) 和 git 历史。
+> 结论来自一手实测（Photoshop 26.2、ErgoSoft HotFolder），并与图像格式规范及开源 issue 交叉核对。面向印刷 / 印前工作流——只有真要出图时，嵌入的 DPI 才决定物理尺寸。
 
 ---
 
@@ -243,8 +243,3 @@ exiftool -G1 -a -s -ResolutionUnit -XResolution -YResolution image.jpg
 ### 出处
 
 JFIF 1.02 规范（W3C / ECMA TR-98）· CIPA DC-008 / JEITA CP-3451（EXIF）· ImageMagick #8460 · libvips #1641 · ExifTool 论坛 #1515 与 #8651 · Adobe 社区 9614560 · Pillow #3328 · ruby-vips #247 · ImageSharp #745 · Qt QTBUG-62249。
-
----
-
-*Original tool implementation & full engineering notes (Chinese): [`CLAUDE.md`](./CLAUDE.md). Retired but preserved for reference.*
-*原始工具实现与完整工程笔记（中文）见 [`CLAUDE.md`](./CLAUDE.md)，已退役但保留作参考。*
