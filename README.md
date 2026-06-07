@@ -54,6 +54,15 @@ A designer sees an image as **300 dpi → 10 inches wide** in Photoshop. The sam
 | 2 | **EXIF** | **JFIF** ← divergence |
 | 3 | JFIF | 72 |
 
+### Why is Photoshop different from everything else?
+
+Short answer: **no standard ever defined which one wins when both EXIF and JFIF carry a resolution — so every program picked its own order.** The JFIF spec and the EXIF spec each demand to be the *first* APP segment, i.e. they were never meant to coexist. Real files carry both anyway, landing in a gray zone no spec covers. There is no "correct" answer here, so neither Photoshop nor the others are buggy — they just made different choices.
+
+- **Photoshop** is a *photographer's* tool: it trusts its own 8BIM first, then **EXIF** (the 1995 photographic-metadata standard), and treats **JFIF** (the dumb 1992 container byte) as a last resort.
+- **Almost everything else** — RIPs, Qt, ImageMagick, GIMP, OS file viewers — are *general JPEG processors*: they parse the JFIF baseline header first (every decoder must), with EXIF bolted on later, so **JFIF wins**.
+
+So when there is no 8BIM, the world splits along exactly one line: **Adobe reads EXIF; nearly everyone else reads JFIF.** That single split is the entire reason this problem exists *and* why it stays hidden — a designer in Photoshop (EXIF) sees the right size, while the print RIP (JFIF) does not.
+
 ### Two facts that explain everything
 
 **1. JFIF `units = 0` does NOT mean "0 dpi" — it means "no resolution, aspect ratio only."**
@@ -161,6 +170,15 @@ JFIF 1.02 spec (W3C / ECMA TR-98) · CIPA DC-008 / JEITA CP-3451 (EXIF) · Image
 | 1 | 8BIM | 8BIM |
 | 2 | **EXIF** | **JFIF** ← 分歧 |
 | 3 | JFIF | 72 |
+
+### 为什么 Photoshop 和其他软件不一样？
+
+一句话：**没有任何标准规定"EXIF 和 JFIF 都带分辨率时该信谁"——所以每个软件自己拍板。** JFIF 规范和 EXIF 规范都要求"我必须是第一个 APP 段"，也就是它俩在设计上本就不该共存。但现实文件偏偏两个段都带，落进了一个规范从未覆盖的灰色地带。这里没有对错，所以 Photoshop 没 bug、其他软件也没 bug——只是各自选择不同。
+
+- **Photoshop** 是*摄影师*的工具：先信自己的 8BIM，再信 **EXIF**（1995 年的摄影元数据标准），把 **JFIF**（1992 年那个简单的容器字节）当最后兜底。
+- **其他几乎所有软件**——RIP、Qt、ImageMagick、GIMP、系统看图器——是*通用 JPEG 处理器*：它们先解析 JFIF 基础头（任何解码器都得解），EXIF 是后来加的可选项，所以 **JFIF 优先**。
+
+于是**无 8BIM 时，世界只沿一条线分裂：Adobe 读 EXIF，其他几乎所有人读 JFIF。** 这一条分裂就是整个问题存在、且能长期藏住的全部原因——设计师在 Photoshop（EXIF）里看到的尺寸是对的，而印刷 RIP（JFIF）看到的不对。
 
 ### 两个事实解释一切
 
