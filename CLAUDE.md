@@ -232,6 +232,38 @@ exiftool -G1 -a -s -ResolutionUnit -XResolution -YResolution "问题图.jpg"
 
 **Photoshop 优先级保留**：`-JFIF:X<Photoshop:X` 的两条覆盖规则当前 0 命中，但留作业务员未来真的用 PS Save 出图时的兜底，无害。
 
+## 2026-06-07 联网核实（外部佐证 + 一处自我纠错）
+
+对上面所有结论做了一轮中/英/德三语联网核实。分三档：**规范与原理层=铁证**，**具体闭源 RIP=只 ErgoSoft/Onyx 有据、其余黑盒**，**一处旧推断被推翻**。
+
+### ✅ 规范层：unit=0 不可信、默认 72=「无信息」
+- **JFIF 1.02 规范**（W3C / ECMA TR-98）：units 字段 0 = 无单位，此时 Xdensity:Ydensity 表示**像素纵横比**而非 DPI；`1,1` = 方形像素、无分辨率信息。直接坐实故障模式 1/3 的前提。
+- **「把 unit=0 的 XRes=1 误读成 1 dpi」是业界踩过的真坑**：ImageMagick #8460（2025-10 回归）、libvips #1641 都因此被当 bug 修。佐证故障模式 3/7——把「无 DPI」翻成「1 dpi」会出灾难，v2 条件 2（`XRes>1` 才动手）方向正确。
+
+### ✅ 为什么 RIP 不信 EXIF：EXIF 标准自己承认 ppi 无意义
+- **EXIF 标准（CIPA DC-008 / JEITA CP-3451，各版本官方 PDF）原文**：XResolution/YResolution 默认 = 72；"When image resolution is unknown, 72 [dpi] shall be designated"；且明说 **"for images produced by digital cameras, image resolution values such as ppi are meaningless"**。定标准的人自己都说相机的 ppi 无意义。
+- **厂商写入值因机型/年代而异、根本不统一**（佳能 72/180/350、尼康 300/100、索尼按机型、宾得 72）——这种「对不齐」本身就是「随手填的常量、与打印尺寸无关」的铁证。
+- **对项目的意义**：① RIP 一刀切不读 EXIF 有官方根因（连定义方都说 meaningless），不是偏执；② 但 NAS 那批文件的 EXIF 分辨率**不是相机原始章，是中间工具重算写对的真值**，所以同名标签一个是垃圾一个是真值——脚本 `XRes>1` 判断刚好能区分（垃圾默认值=72 或 1，真值=300 这类）；③ 再次印证「不发明数字」克制正确：全是 72/1 就跳过，符合规范精神（那本就是「无信息」非「1 dpi 的图」）。
+
+### ✅ PS 优先级：每条原理性结论都有第三方独立印证
+- **8BIM 胜 EXIF**（对应 S1）：ExifTool 论坛 topic 1515 有人实测「PhotoShop ignores [EXIF] if a PhotoShop Resolution (3ED) is defined」。
+- **8BIM 胜 JFIF**：Adobe 官方社区（APP13=300/JFIF=72 时 Adobe 系一律显示 300）。
+- **unit=None → 回落 72**（对应 S4）：ExifTool topic 8651，作者 Phil Harvey + 版主确认「应用在 JFIF 分辨率非法时无视它代入 72」。
+- **完整三段排序（8BIM>EXIF>JFIF）配真值表**：搜遍三语**全网唯一**是本项目 S0–S6，无人复现到此粒度，但也无任何相反证据、与各碎片全自洽。
+- **S5 纠正了论坛推测**：Phil Harvey 在 8651 里**猜测**「PS 设了合理范围、超界回落 72」；本项目 S5 实测 unit=inches/XRes=1 时 **PS 显示 1 不是 72**。不矛盾（他说的是 unit=None 非法态，S5 是 unit=inches 合法态），但本项目实测比其猜测更准。
+
+### ⚠️ 跨 RIP：只 ErgoSoft / Onyx 有据，其余黑盒
+- **「读 JFIF、不读 EXIF、回落 72」不是 ErgoSoft 孤例**，是通行模式：
+  - **Onyx**：Pillow #3328（Onyx RipCenter 依赖 JFIF，缺失则显示 72）+ ruby-vips #247（Onyx 把 10×10 读成 20.83×20.83，即读成 144dpi）实证，与 ErgoSoft 同款。
+  - **通用图像库也这样**：ImageSharp #745（JFIF 存在就忽略 EXIF）、Qt QTBUG-62249。
+- **Caldera / ColorGate / EFI Fiery：公开渠道（含德语区）查不到 JFIF/EXIF 优先级**，厂商不公开，操作工论坛只在工作流层（图太大→去设计软件改 DPI）讨论。**唯一确定方法是实测**：拿一张「仅 EXIF=240」+ 一张「JFIF unit=None」样张丢进对应 RIP 看显示尺寸（同当初测 ErgoSoft）。
+- **结论**：写 JFIF 是**跨 RIP 普适解**而非只针对 ErgoSoft 的补丁——把 PS 视角 DPI 落进 JFIF，等于喂对所有「认 JFIF」的 RIP，换 RIP 大概率通用。
+
+### ❗ 自我纠错：EFI「72dpi 模糊」那篇文与本议题无关
+曾一度想拿 EFI 支持文《Blurry/unsharp printout from Fiery XF with a 72 Dpi JPEG input file》当「Fiery 按嵌入 DPI 定尺寸」的证据。**拿到原文 PDF 后推翻**：该文讲的是**放大插值算法**（默认 bi-linear，低分图放大边缘发虚，解法是改 QualityMode=1 像素重复），**与 JFIF/EXIF 元数据读取、与打印尺寸怎么定无关**。教训：不要拿标题当证据。EFI 的元数据优先级仍是黑盒。
+
+> 主要出处：W3C/ECMA JFIF 1.02 · ImageMagick #8460 · libvips #1641 · CIPA DC-008 / JEITA CP-3451 · ExifTool 论坛 topic 1515 / 8651 · Adobe 社区 9614560 · Pillow #3328 · ruby-vips #247 · ImageSharp #745 · Qt QTBUG-62249。
+
 ## 相关项目
 
 - `../SendToErgoSoft/`：同一个用户的另一个工具，AHK 脚本，手动把选中 JPG 投递到 ErgoSoft HotFolder（同时顺手修 JFIF）。早期方案，现在用户只要 NAS 巡检这个项目
